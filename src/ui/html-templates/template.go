@@ -21,3 +21,4 @@ func htmlTemplate(t string, vars interface{}) string {
 
 	return b.String()
 }
+

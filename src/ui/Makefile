@@ -4,7 +4,10 @@ FORCE: ;
 html-templates: FORCE
 	./html-templates/convert-to-static-functions.sh
 
-ui: FORCE html-templates
+copy-resources: FORCE
+	cp -r ../../resources .
+
+ui: FORCE html-templates copy-resources
 	go build -o ui .
 
 run: ui

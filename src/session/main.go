@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/hedenface/catbuttbonanza/packages/session"
 	"github.com/hedenface/catbuttbonanza/packages/cbbhttp"
 )
 
@@ -16,21 +18,9 @@ const (
 )
 
 var (
-	sessions = make(map[string]Session)
+	sessions = make(map[string]session.Session)
 	lock sync.Mutex
 )
-
-// TODO: delete session data when a user is deleted
-// TODO: mfa for login
-type Session struct {
-	ID string
-	Username string
-	Authenticated bool
-	LoggedIn time.Time
-	LastActivity time.Time
-	ReqRemoteAddr string
-	ReqHeaderXForwardedFor string
-}
 
 func main() {
 	http.HandleFunc("/session/set", setHandler)
@@ -53,7 +43,7 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 	lock.Lock()
 	defer lock.Unlock()
 
-	var session Session
+	var s session.Session
 
 	cleanupAllOldSessions()
 	r.ParseForm()
@@ -63,20 +53,20 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := cbbhttp.GetBody(w, r, &session)
+	err := cbbhttp.GetBody(w, r, &s)
 	if err != nil {
 		fmt.Printf("getHandler: GetBody failed: %v\n", err)
 		return
 	}
 
-	if session.ID == "" {
+	if s.ID == "" {
 		cbbhttp.Error(w, http.StatusBadRequest)
 		return
 	}
 
-	session, ok := sessions[session.ID]
+	s, ok := sessions[s.ID]
 	if ok == true {
-		cbbhttp.ReturnObject(w, session)
+		cbbhttp.ReturnObject(w, s)
 	} else {
 		cbbhttp.Error(w, http.StatusNotFound)
 	}
@@ -92,7 +82,7 @@ func setHandler(w http.ResponseWriter, r *http.Request) {
 	lock.Lock()
 	defer lock.Unlock()
 
-	var session Session
+	var s session.Session
 
 	cleanupAllOldSessions()
 	r.ParseForm()
@@ -104,50 +94,60 @@ func setHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := cbbhttp.GetBody(w, r, &session)
+	err := cbbhttp.GetBody(w, r, &s)
 	if err != nil {
 		fmt.Printf("setHandler: GetBody failed: %v\n", err)
 		return
 	}
 
-	if session.ID == "" {
-		cbbhttp.Error(w, http.StatusBadRequest)
-		return
+	// this means it's a new session
+	// so we'll need to make sure it has a unique ID
+	if s.ID == "" {
+		for {
+			sessionID := uuid.New().String()
+			_, ok := sessions[sessionID]
+
+			// if ok isn't true, that means our sessionID wasn't in the map; we have a unique sessionID
+			if ok != true {
+				s.ID = sessionID
+				break
+			}
+		}
 	}
 
-	existingSession, ok := sessions[session.ID]
+	existingSession, ok := sessions[s.ID]
 
 	// this means its a new session
 	if ok != true {
-		session.LastActivity = time.Now()
+		s.LastActivity = time.Now()
 
-		sessions[session.ID] = session
+		sessions[s.ID] = s
 		cbbhttp.Message(w, "session added")
 		return
 	}
 
 	// something fishy is happening here
-	if existingSession.ReqRemoteAddr != session.ReqRemoteAddr || existingSession.ReqHeaderXForwardedFor != session.ReqHeaderXForwardedFor {
-		delete(sessions, session.ID)
+	if existingSession.ReqRemoteAddr != s.ReqRemoteAddr || existingSession.ReqHeaderXForwardedFor != s.ReqHeaderXForwardedFor {
+		delete(sessions, s.ID)
 		cbbhttp.Message(w, "session deleted due to suspicious activity")
 		return
 	}
 
 	// if the user logged out, we just clear the session
-	if existingSession.Authenticated == true && session.Authenticated == false {
-		delete(sessions, session.ID)
+	if existingSession.Authenticated == true && s.Authenticated == false {
+		delete(sessions, s.ID)
 		cbbhttp.Message(w, "session deleted by logging out")
 		return
 	}
 
 	// if the user just logged in, we update the session with the time
-	if existingSession.Authenticated == false && session.Authenticated == true {
-		session.LoggedIn = time.Now()
+	if existingSession.Authenticated == false && s.Authenticated == true {
+		s.LoggedIn = time.Now()
 	}
 
 	// finally, we just update the session
-	session.LastActivity = time.Now()
-	sessions[session.ID] = session
+	s.LastActivity = time.Now()
+	sessions[s.ID] = s
 	cbbhttp.Message(w, "existing session updated")
 }
 
@@ -155,25 +155,25 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	lock.Lock()
 	defer lock.Unlock()
 
-	var session Session
+	var s session.Session
 
 	cleanupAllOldSessions()
 	r.ParseForm()
 
-	err := cbbhttp.GetBody(w, r, &session)
+	err := cbbhttp.GetBody(w, r, &s)
 	if err != nil {
 		fmt.Printf("getHandler: GetBody failed: %v\n", err)
 		return
 	}
 
-	if session.ID == "" {
+	if s.ID == "" {
 		cbbhttp.Error(w, http.StatusBadRequest)
 		return
 	}
 
-	session, ok := sessions[session.ID]
+	s, ok := sessions[s.ID]
 	if ok == true {
-		delete(sessions, session.ID)
+		delete(sessions, s.ID)
 		cbbhttp.Message(w, "session deleted")
 	} else {
 		cbbhttp.Message(w, "session not found")

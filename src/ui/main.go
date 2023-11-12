@@ -9,30 +9,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hedenface/catbuttbonanza/packages/session"
 )
 
 const (
 	templateDir = "html-templates/"
 	username = "heden"
 	password = "abc"
-	maxSessionAge = 60 * 60 * 4
-	defaultPort = ":80"
+	defaultPort = ":8080"
 )
-
-var (
-	sessions = make(map[string]Session)
-)
-
-// TODO: delete session data when a user is deleted
-// TODO: mfa for login
-type Session struct {
-	ID string
-	Username string
-	Authenticated bool
-	LoggedIn time.Time
-	ReqRemoteAddr string
-	ReqHeaderXForwardedFor string
-}
 
 type HTMLPageVars struct {
 	Title string
@@ -42,11 +27,10 @@ type HTMLPageVars struct {
 
 
 func main() {
-
 	http.HandleFunc("/favicon.png", faviconHandler)
 	http.HandleFunc("/login", loginHandler)
 	http.HandleFunc("/", handler)
-	http.ListenAndServe(defaultPort, nil)
+	fmt.Println(http.ListenAndServe(defaultPort, nil))
 }
 
 
@@ -107,19 +91,6 @@ func checkIfAuthenticated(sessionID string) bool {
 }
 
 func startSession(w http.ResponseWriter, r *http.Request) string {
-	var sessionID string
-
-	// guarantee a unique sessionID
-	for {
-		sessionID = uuid.New().String()
-		_, ok := sessions[sessionID]
-
-		// if ok isn't true, that means our sessionID wasn't in the map; we have a unique sessionID
-		if ok != true {
-			break
-		}
-	}
-
 	http.SetCookie(w, &http.Cookie{
 		Name: "session",
 		Value: sessionID,
@@ -134,14 +105,6 @@ func startSession(w http.ResponseWriter, r *http.Request) string {
 	}
 
 	return sessionID
-}
-
-func cleanupAllOldSessions() {
-	for key, val := range sessions {
-		if time.Since(val.LoggedIn).Seconds() > maxSessionAge {
-			delete(sessions, key)
-		}
-	}
 }
 
 func initSession(w http.ResponseWriter, r *http.Request) string {

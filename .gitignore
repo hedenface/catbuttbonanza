@@ -1,3 +1,6 @@
 catbuttbonanza
 html-templates/htmlTemplate.go
 src/ui/ui
+src/ui/resources
+
+src/session/session
