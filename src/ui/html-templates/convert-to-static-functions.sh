@@ -3,7 +3,7 @@
 base_dir=$(dirname "$0")
 
 templateFile="$base_dir/template.go"
-htmlTemplateFile="$base_dir/htmlTemplate.go"
+htmlTemplateFile="$base_dir/../htmlTemplate.go"
 
 cat $templateFile > $htmlTemplateFile
 
@@ -25,9 +25,3 @@ for file in $(find "$base_dir" -name '*.html'); do
     echo "}" >> $htmlTemplateFile
     echo "" >> $htmlTemplateFile
 done
-
-pushd $base_dir
-go fmt
-popd
-
-cp $htmlTemplateFile $base_dir/../htmlTemplate.go

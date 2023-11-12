@@ -22,7 +22,7 @@ func htmlTemplate(t string, vars interface{}) string {
 	return b.String()
 }
 func htmlTemplateFormLogin(vars interface{}) string {
-	return htmlTemplate(`
+return htmlTemplate(`
 <form method="post" action="/login">
     <label>
         Username
@@ -38,7 +38,7 @@ func htmlTemplateFormLogin(vars interface{}) string {
 }
 
 func htmlTemplatePage(vars interface{}) string {
-	return htmlTemplate(`
+return htmlTemplate(`
 <!doctype html>
 <html lang="en">
   <head>
@@ -65,3 +65,4 @@ func htmlTemplatePage(vars interface{}) string {
 </html>
 `, vars)
 }
+

@@ -16,6 +16,7 @@ const (
 	username = "heden"
 	password = "abc"
 	maxSessionAge = 60 * 60 * 4
+	defaultPort = ":80"
 )
 
 var (
@@ -45,7 +46,7 @@ func main() {
 	http.HandleFunc("/favicon.png", faviconHandler)
 	http.HandleFunc("/login", loginHandler)
 	http.HandleFunc("/", handler)
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(defaultPort, nil)
 }
 
 
