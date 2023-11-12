@@ -8,7 +8,8 @@ import (
 	//"text/template"
 	"time"
 
-	"github.com/google/uuid"
+	//"github.com/google/uuid"
+	"github.com/hedenface/catbuttbonanza/packages/log"
 	"github.com/hedenface/catbuttbonanza/packages/session"
 )
 
@@ -19,18 +20,15 @@ const (
 	defaultPort = ":8080"
 )
 
-type HTMLPageVars struct {
-	Title string
-	Head string
-	Body string
-}
-
+var (
+	logger = log.Setup("ui")
+)
 
 func main() {
 	http.HandleFunc("/favicon.png", faviconHandler)
 	http.HandleFunc("/login", loginHandler)
 	http.HandleFunc("/", handler)
-	fmt.Println(http.ListenAndServe(defaultPort, nil))
+	logger.Println(http.ListenAndServe(defaultPort, nil))
 }
 
 
@@ -39,23 +37,28 @@ func faviconHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
-	sessionID := initSession(w, r)
+	var s session.Session
+	s.ID = initSession(w, r)
 
 	r.ParseForm()
 
 	if r.Method == "POST" {
 		if r.Form["username"][0] == username && r.Form["password"][0] == password {
-			session, ok := sessions[sessionID]
-			if ok != true {
-				// TODO: this shouldn't ever happen
-				fmt.Println("this shouldn't happen greegjrehgq")
-			} else {
-				session.Authenticated = true
-				session.Username = r.Form["username"][0]
-				session.LoggedIn = time.Now()
 
-				sessions[sessionID] = session
+			if s.ID == "" {
+				// this really shouldn't happen
+				logger.Printf("[loginHandler] No session ID on login Username: %s\n", r.Form["username"][0])
+			} else {
+				s.Authenticated = true
+				s.Username = r.Form["username"][0]
+				s.LoggedIn = time.Now()
+
+				_, err := session.Set(s)
+				if err != nil {
+					logger.Printf("[loginHandler] session.Set() failed: %v\n", err)
+				}
 			}
+
 			// TODO: add a redirect to the original page
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 		}
@@ -81,28 +84,33 @@ func redirectNotAuthenticated(w http.ResponseWriter, r *http.Request, sessionID 
 }
 
 func checkIfAuthenticated(sessionID string) bool {
-	session, ok := sessions[sessionID]
-	if ok != true {
-		fmt.Println("this shouldn't happen rtteyjeytsgf")
+	if sessionID == "" {
 		return false
 	}
-
-	return session.Authenticated
+	s := session.Get(sessionID)
+	return s.Authenticated
 }
 
 func startSession(w http.ResponseWriter, r *http.Request) string {
+
+	sessionID, err := session.Set(session.Session{
+  		ReqRemoteAddr: r.RemoteAddr,
+  		ReqHeaderXForwardedFor: r.Header.Get("X-Forwarded-For"),
+	})
+
+	if err != nil {
+		// this will cause some issues initially, but they should be cleaned up
+		// in short order
+		logger.Printf("[startSession] session.Set() failed: %v\n", err)
+		return ""
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name: "session",
 		Value: sessionID,
 		Path: "/",
-		MaxAge: maxSessionAge,
+		MaxAge: session.MaxSessionAge,
 	})
-
-	sessions[sessionID] = Session{
-  		ID: sessionID,
-  		ReqRemoteAddr: r.RemoteAddr,
-  		ReqHeaderXForwardedFor: r.Header.Get("X-Forwarded-For"),
-	}
 
 	return sessionID
 }
@@ -110,32 +118,24 @@ func startSession(w http.ResponseWriter, r *http.Request) string {
 func initSession(w http.ResponseWriter, r *http.Request) string {
 	sessionCookie, err := r.Cookie("session")
 
-	cleanupAllOldSessions()
-
 	if err != nil || sessionCookie == nil {
 		// if we have no session cookie
 		// we need to initialize the session and set cookies
 		return startSession(w, r)
-	} else {
-		// if we have a session cookie
-		// so now we check if we have corresponding session data
+	}
 
-		// if we don't have the session data
-		// we should clean up the cookies
-		val, ok := sessions[sessionCookie.Value]
-		if ok != true {
-			deleteCookie(w, "session")
-			delete(sessions, sessionCookie.Value)
-			return startSession(w, r)
-		} else {
-			// now lets check that the remoteaddress and x-forwarded-for header matches
-			// what was used when the session was set up
-			if r.RemoteAddr != val.ReqRemoteAddr || r.Header.Get("X-Forwarded-For") != val.ReqHeaderXForwardedFor {
-				deleteCookie(w, "session")
-				delete(sessions, sessionCookie.Value)
-				return startSession(w, r)
-			}
+	// if we have a session cookie
+	// so now we check if we have corresponding session data
+	s := session.Get(sessionCookie.Value)
+
+	// if we don't have session data, clean up the cookies
+	if s.ID == "" {
+		deleteCookie(w, "session")
+		err := session.Delete(sessionCookie.Value)
+		if err != nil {
+			logger.Printf("[initSession] session.Delete() failed: %v\n", err)
 		}
+		return startSession(w, r)
 	}
 
 	return sessionCookie.Value

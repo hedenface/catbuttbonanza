@@ -22,6 +22,10 @@ type Session struct {
 	HTTPError   string `json:"error"`
 }
 
+const (
+    MaxSessionAge = 60 * 60 * 4
+)
+
 func Get(id string) Session {
 	var s Session
 
@@ -37,18 +41,18 @@ func Get(id string) Session {
     return s
 }
 
-func Set(s Session) error {
+func Set(s Session) (string, error) {
     var r Session
     err := cbbhttp.APICall("localhost", 8081, "POST", "session/set", s, &r)
     if err != nil {
-        return err
+        return "", err
     }
 
-    if r.HTTPMessage != "" {
-        return nil
+    if r.HTTPMessage == "" {
+        return r.ID, nil
     }
 
-    return fmt.Errorf("%s", r.HTTPError)
+    return "", fmt.Errorf("%s", r.HTTPError)
 }
 
 func Delete(id string) error {

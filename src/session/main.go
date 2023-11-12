@@ -13,7 +13,6 @@ import (
 )
 
 const (
-	maxSessionAge = 60 * 60 * 4
 	defaultPort = ":8081"
 )
 
@@ -32,7 +31,7 @@ func main() {
 func cleanupAllOldSessions() {
 	fmt.Printf("Sessions: %+v\n", sessions)
 	for key, val := range sessions {
-		if val.Authenticated == true && time.Since(val.LoggedIn).Seconds() > maxSessionAge {
+		if val.Authenticated == true && time.Since(val.LoggedIn).Seconds() > session.MaxSessionAge {
 			fmt.Println("deleting : %d\n", time.Since(val.LoggedIn).Seconds())
 			delete(sessions, key)
 		}
@@ -122,7 +121,7 @@ func setHandler(w http.ResponseWriter, r *http.Request) {
 		s.LastActivity = time.Now()
 
 		sessions[s.ID] = s
-		cbbhttp.Message(w, "session added")
+		cbbhttp.ReturnObject(w, s)
 		return
 	}
 
