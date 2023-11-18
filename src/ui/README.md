@@ -14,3 +14,16 @@ or
 ```
 make run
 ```
+
+
+Craig:
+
+Thanos
+
+Mimir
+
+Open Telemetry
+
+important: high cardinality
+deadman switch
+

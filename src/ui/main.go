@@ -2,7 +2,7 @@ package main
 
 import (
 	//"bytes"
-	"fmt"
+	//"fmt"
 	"net/http"
 	//"plugin"
 	//"text/template"
@@ -27,6 +27,7 @@ var (
 func main() {
 	http.HandleFunc("/favicon.png", faviconHandler)
 	http.HandleFunc("/login", loginHandler)
+	http.HandleFunc("/logout", logoutHandler)
 	http.HandleFunc("/", handler)
 	logger.Println(http.ListenAndServe(defaultPort, nil))
 }
@@ -39,6 +40,10 @@ func faviconHandler(w http.ResponseWriter, r *http.Request) {
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	var s session.Session
 	s.ID = initSession(w, r)
+
+	if checkIfAuthenticated(s.ID) == true {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	}
 
 	r.ParseForm()
 
@@ -53,9 +58,9 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 				s.Username = r.Form["username"][0]
 				s.LoggedIn = time.Now()
 
-				_, err := session.Set(s)
+				_, err := session.Update(s)
 				if err != nil {
-					logger.Printf("[loginHandler] session.Set() failed: %v\n", err)
+					logger.Printf("[loginHandler] session.Update() failed: %v\n", err)
 				}
 			}
 
@@ -70,6 +75,20 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			Head: "",
 			Body: htmlTemplateFormLogin(nil),
 	})))
+}
+
+func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	sessionID := initSession(w, r)
+	redirectNotAuthenticated(w, r, sessionID)
+
+	err := session.Delete(sessionID)
+	if err != nil {
+		logger.Printf("[logoutHandler] session.Update() failed: %v\n", err)
+	}
+
+	deleteCookie(w, "session")
+
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -87,13 +106,17 @@ func checkIfAuthenticated(sessionID string) bool {
 	if sessionID == "" {
 		return false
 	}
-	s := session.Get(sessionID)
+	s, err := session.Read(sessionID)
+	if err != nil {
+		logger.Printf("[checkIfAuthenticated] error reading sessionID (%s)\n", sessionID)
+		return false
+	}
 	return s.Authenticated
 }
 
 func startSession(w http.ResponseWriter, r *http.Request) string {
 
-	sessionID, err := session.Set(session.Session{
+	sessionID, err := session.Create(session.Session{
   		ReqRemoteAddr: r.RemoteAddr,
   		ReqHeaderXForwardedFor: r.Header.Get("X-Forwarded-For"),
 	})
@@ -101,7 +124,7 @@ func startSession(w http.ResponseWriter, r *http.Request) string {
 	if err != nil {
 		// this will cause some issues initially, but they should be cleaned up
 		// in short order
-		logger.Printf("[startSession] session.Set() failed: %v\n", err)
+		logger.Printf("[startSession] session.Create() failed: %v\n", err)
 		return ""
 	}
 
@@ -126,7 +149,11 @@ func initSession(w http.ResponseWriter, r *http.Request) string {
 
 	// if we have a session cookie
 	// so now we check if we have corresponding session data
-	s := session.Get(sessionCookie.Value)
+	s, err := session.Read(sessionCookie.Value)
+	if err != nil {
+		logger.Printf("[initSession] error reading sessionCooke.Value (%s)\n", sessionCookie.Value)
+		return startSession(w, r)
+	}
 
 	// if we don't have session data, clean up the cookies
 	if s.ID == "" {

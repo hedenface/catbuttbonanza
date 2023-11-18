@@ -25,8 +25,6 @@ func ReturnObject(w http.ResponseWriter, object interface{}) {
 	json, err := json.Marshal(object)
 	if err != nil {
 		Error(w, http.StatusInternalServerError)
-		// TODO: add some better logging here
-		fmt.Printf("ReturnObject: marshalling json failed: %v\n", err)
 	}
 	w.Write([]byte(json))
 }
@@ -43,8 +41,6 @@ func GetBody(w http.ResponseWriter, r *http.Request, object any) error {
 	err = json.Unmarshal(body, object)
 	if err != nil {
 		Error(w, http.StatusInternalServerError)
-		// TODO: logging
-		fmt.Println("GetBody: SetHandler Unmarshal error %v\n", err)
 		return err
 	}
 

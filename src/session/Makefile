@@ -1,4 +1,4 @@
-.DEFAULT_GOAL := ui
+.DEFAULT_GOAL := session
 FORCE: ;
 
 session: FORCE

@@ -26,24 +26,9 @@ const (
     MaxSessionAge = 60 * 60 * 4
 )
 
-func Get(id string) Session {
-	var s Session
-
-	s.ID = id
-
-	err := cbbhttp.APICall("localhost", 8081, "POST", "session/get", s, &s)
-    if err != nil {
-        // TODO: logging
-        fmt.Printf("session package: Get(): err = %v\n", err)
-        return Session{}
-    }
-
-    return s
-}
-
-func Set(s Session) (string, error) {
+func Create(s Session) (string, error) {
     var r Session
-    err := cbbhttp.APICall("localhost", 8081, "POST", "session/set", s, &r)
+    err := cbbhttp.APICall("localhost", 8081, "PUT", "session/create", s, &r)
     if err != nil {
         return "", err
     }
@@ -55,10 +40,35 @@ func Set(s Session) (string, error) {
     return "", fmt.Errorf("%s", r.HTTPError)
 }
 
+func Read(id string) (Session, error) {
+	var s Session
+
+	err := cbbhttp.APICall("localhost", 8081, "GET", fmt.Sprintf("session/read/%s", id), "", &s)
+    if err != nil {
+        return Session{}, err
+    }
+
+    return s, nil
+}
+
+func Update(s Session) (Session, error) {
+    var r Session
+    err := cbbhttp.APICall("localhost", 8081, "PATCH", "session/update", s, &r)
+    if err != nil {
+        return Session{}, err
+    }
+
+    if r.HTTPMessage == "" && r.HTTPError == "" {
+        return r, nil
+    }
+
+    return Session{}, fmt.Errorf("%s", r.HTTPError)
+}
+
 func Delete(id string) error {
     var s, r Session
     s.ID = id
-    err := cbbhttp.APICall("localhost", 8081, "POST", "session/delete", s, &r)
+    err := cbbhttp.APICall("localhost", 8081, "DELETE", fmt.Sprintf("session/delete/%s", s.ID), "", &r)
     if err != nil {
         return err
     }

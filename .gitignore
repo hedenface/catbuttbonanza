@@ -4,3 +4,6 @@ src/ui/ui
 src/ui/resources
 
 src/session/session
+
+deployments/single-docker/ui
+deployments/single-docker/session
