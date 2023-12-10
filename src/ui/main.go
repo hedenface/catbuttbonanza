@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	templateDir = "html-templates/"
+	templateDir = "_html-templates/"
 	username = "heden"
 	password = "abc"
 	defaultPort = ":8080"

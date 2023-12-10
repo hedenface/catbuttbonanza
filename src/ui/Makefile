@@ -2,7 +2,7 @@
 FORCE: ;
 
 html-templates: FORCE
-	./html-templates/convert-to-static-functions.sh
+	./_html-templates/convert-to-static-functions.sh
 
 copy-resources: FORCE
 	cp -r ../../resources .
