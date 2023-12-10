@@ -1,5 +1,5 @@
 name: '💡 Feature Request'
-about: Ideas for features and/or improvements
+description: Ideas for features and/or improvements
 labels: [feature-request]
 body:
   - type: textarea
