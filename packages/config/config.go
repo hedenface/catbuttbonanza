@@ -9,9 +9,8 @@ import (
 )
 
 type GlobalSettings struct {
-	LoggingLevel int `yaml:"loggingLevel",json:"loggingLevel"`
-	Port int `yaml:"port",json:"port"`
-	PortString string
+	LoggingLevel int `yaml:"loggingLevel" json:"loggingLevel"`
+	Port int `yaml:"port" json:"port"`
 }
 
 var (
