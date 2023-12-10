@@ -22,24 +22,8 @@ func htmlTemplate(t string, vars interface{}) string {
 	return b.String()
 }
 
-func htmlTemplateFormLogin(vars interface{}) string {
-return htmlTemplate(`
-<form method="post" action="/login">
-    <label>
-        Username
-        <input type="text" name="username">
-    </label>
-    <label>
-        Password
-        <input type="password" name="password">
-    </label>
-    <input type="submit" value="Login">
-</form>
-`, vars)
-}
-
 func htmlTemplatePage(vars interface{}) string {
-return htmlTemplate(`
+	return htmlTemplate(`
 <!doctype html>
 <html lang="en">
   <head>
@@ -67,3 +51,18 @@ return htmlTemplate(`
 `, vars)
 }
 
+func htmlTemplateFormLogin(vars interface{}) string {
+	return htmlTemplate(`
+<form method="post" action="/login">
+    <label>
+        Username
+        <input type="text" name="username">
+    </label>
+    <label>
+        Password
+        <input type="password" name="password">
+    </label>
+    <input type="submit" value="Login">
+</form>
+`, vars)
+}

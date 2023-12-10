@@ -25,3 +25,5 @@ for file in $(find "$base_dir" -name '*.html'); do
     echo "}" >> $htmlTemplateFile
     echo "" >> $htmlTemplateFile
 done
+
+go fmt $htmlTemplateFile

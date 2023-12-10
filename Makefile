@@ -1,11 +1,7 @@
 .DEFAULT_GOAL := catbuttbonanza
 FORCE: ;
 
-html-templates: FORCE
-	./html-templates/convert-to-static-functions.sh
-
-catbuttbonanza: FORCE html-templates
-	go build -o catbuttbonanza .
-
-run: catbuttbonanza
-	./catbuttbonanza
+catbuttbonanza: FORCE
+	cd src/ui && make
+	cd src/auth && make
+	cd src/session && make

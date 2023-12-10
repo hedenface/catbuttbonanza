@@ -20,12 +20,13 @@ const (
 )
 
 var (
-	logger = log.Setup("session")
 	sessions = make(map[string]session.Session)
 	mu sync.Mutex
 )
 
 func main() {
+	log.Setup("session", log.DebugLevel)
+
 	http.HandleFunc("/session/create", createHandler)
 	http.HandleFunc("/session/read/", readHandler)
 	http.HandleFunc("/session/update", updateHandler)
@@ -34,7 +35,7 @@ func main() {
 }
 
 func cleanupAllOldSessions() {
-	logger.Printf("Sessions: %+v\n", sessions)
+	log.Debug("Sessions: %+v\n", sessions)
 	for key, val := range sessions {
 		if val.Authenticated == true && time.Since(val.LoggedIn).Seconds() > session.MaxSessionAge {
 			delete(sessions, key)
@@ -99,7 +100,7 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 
 	s, err := getSessionFromBody(w, r, "PUT")
 	if err != nil {
-		logger.Printf("createHandler: getSessionFromBody failed (%v)\n", err)
+		log.Error("createHandler: getSessionFromBody failed (%v)\n", err)
 		return
 	}
 
@@ -116,7 +117,7 @@ func readHandler(w http.ResponseWriter, r *http.Request) {
 
 	s, err := getSessionFromPath(w, r, "/session/read/", "GET")
 	if err != nil {
-		logger.Printf("readHandler: getSessionFromPath failed (%v)\n", err)
+		log.Error("readHandler: getSessionFromPath failed (%v)\n", err)
 		return
 	}
 
@@ -129,7 +130,7 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 
 	s, err := getSessionFromBody(w, r, "PATCH")
 	if err != nil {
-		logger.Printf("updateHandler: getSessionFromBody failed (%v)\n", err)
+		log.Error("updateHandler: getSessionFromBody failed (%v)\n", err)
 		return
 	}
 
@@ -150,7 +151,7 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	s, err := getSessionFromPath(w, r, "/session/delete/", "DELETE")
 	if err != nil {
-		logger.Printf("deleteHandler: getSessionFromPath failed (%v)\n", err)
+		log.Error("deleteHandler: getSessionFromPath failed (%v)\n", err)
 		return
 	}
 

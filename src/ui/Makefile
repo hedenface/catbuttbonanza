@@ -12,3 +12,6 @@ ui: FORCE html-templates copy-resources
 
 run: ui
 	./ui
+
+docker: ui
+	docker build -t cbb-ui .

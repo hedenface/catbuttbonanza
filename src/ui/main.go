@@ -20,24 +20,31 @@ const (
 	defaultPort = ":8080"
 )
 
-var (
-	logger = log.Setup("ui")
-)
-
 func main() {
+	log.PushStack("main")
+	defer log.PopStack()
+
+	log.Setup("ui", log.DebugLevel)
+
 	http.HandleFunc("/favicon.png", faviconHandler)
 	http.HandleFunc("/login", loginHandler)
 	http.HandleFunc("/logout", logoutHandler)
 	http.HandleFunc("/", handler)
-	logger.Println(http.ListenAndServe(defaultPort, nil))
+	log.Errorln(http.ListenAndServe(defaultPort, nil))
 }
 
 
 func faviconHandler(w http.ResponseWriter, r *http.Request) {
+	log.PushStack("main")
+	defer log.PopStack()
+
 	http.ServeFile(w, r, "resources/favicon.png")
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
+	log.PushStack("loginHandler")
+	defer log.PopStack()
+
 	var s session.Session
 	s.ID = initSession(w, r)
 
@@ -52,7 +59,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 			if s.ID == "" {
 				// this really shouldn't happen
-				logger.Printf("[loginHandler] No session ID on login Username: %s\n", r.Form["username"][0])
+				log.Warn("No session ID on login Username: %s\n", r.Form["username"][0])
 			} else {
 				s.Authenticated = true
 				s.Username = r.Form["username"][0]
@@ -60,7 +67,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 				_, err := session.Update(s)
 				if err != nil {
-					logger.Printf("[loginHandler] session.Update() failed: %v\n", err)
+					log.Error("session.Update() failed: %v\n", err)
 				}
 			}
 
@@ -78,12 +85,15 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	log.PushStack("logoutHandler")
+	defer log.PopStack()
+
 	sessionID := initSession(w, r)
 	redirectNotAuthenticated(w, r, sessionID)
 
 	err := session.Delete(sessionID)
 	if err != nil {
-		logger.Printf("[logoutHandler] session.Update() failed: %v\n", err)
+		log.Error("session.Update() failed: %v\n", err)
 	}
 
 	deleteCookie(w, "session")
@@ -92,29 +102,41 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
+	log.PushStack("handler")
+	defer log.PopStack()
+
 	sessionID := initSession(w, r)
 	redirectNotAuthenticated(w, r, sessionID)
 }
 
 func redirectNotAuthenticated(w http.ResponseWriter, r *http.Request, sessionID string) {
+	log.PushStack("redirectNotAuthenticated")
+	defer log.PopStack()
+
 	if checkIfAuthenticated(sessionID) != true {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
 }
 
 func checkIfAuthenticated(sessionID string) bool {
+	log.PushStack("checkIfAuthenticated")
+	defer log.PopStack()
+
 	if sessionID == "" {
 		return false
 	}
 	s, err := session.Read(sessionID)
 	if err != nil {
-		logger.Printf("[checkIfAuthenticated] error reading sessionID (%s)\n", sessionID)
+		log.Error("error reading sessionID (%s)\n", sessionID)
 		return false
 	}
 	return s.Authenticated
 }
 
 func startSession(w http.ResponseWriter, r *http.Request) string {
+	log.PushStack("startSession")
+	defer log.PopStack()
+
 
 	sessionID, err := session.Create(session.Session{
   		ReqRemoteAddr: r.RemoteAddr,
@@ -124,7 +146,7 @@ func startSession(w http.ResponseWriter, r *http.Request) string {
 	if err != nil {
 		// this will cause some issues initially, but they should be cleaned up
 		// in short order
-		logger.Printf("[startSession] session.Create() failed: %v\n", err)
+		log.Error("session.Create() failed: %v\n", err)
 		return ""
 	}
 
@@ -139,6 +161,9 @@ func startSession(w http.ResponseWriter, r *http.Request) string {
 }
 
 func initSession(w http.ResponseWriter, r *http.Request) string {
+	log.PushStack("initSession")
+	defer log.PopStack()
+
 	sessionCookie, err := r.Cookie("session")
 
 	if err != nil || sessionCookie == nil {
@@ -151,7 +176,7 @@ func initSession(w http.ResponseWriter, r *http.Request) string {
 	// so now we check if we have corresponding session data
 	s, err := session.Read(sessionCookie.Value)
 	if err != nil {
-		logger.Printf("[initSession] error reading sessionCooke.Value (%s)\n", sessionCookie.Value)
+		log.Warn("error reading sessionCooke.Value (%s)\n", sessionCookie.Value)
 		return startSession(w, r)
 	}
 
@@ -160,7 +185,7 @@ func initSession(w http.ResponseWriter, r *http.Request) string {
 		deleteCookie(w, "session")
 		err := session.Delete(sessionCookie.Value)
 		if err != nil {
-			logger.Printf("[initSession] session.Delete() failed: %v\n", err)
+			log.Error("session.Delete() failed: %v\n", err)
 		}
 		return startSession(w, r)
 	}
@@ -169,6 +194,9 @@ func initSession(w http.ResponseWriter, r *http.Request) string {
 }
 
 func deleteCookie(w http.ResponseWriter, name string) {
+	log.PushStack("deleteCookie")
+	defer log.PopStack()
+
  	http.SetCookie(w, &http.Cookie{
  		Name: name,
  		Value: "",
