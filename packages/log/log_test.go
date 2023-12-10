@@ -18,10 +18,13 @@ type funcPrintf func(string, ...any)
 type funcPrint func()
 
 func getExpectedOutput(l int, app string, data string) string {
-    return fmt.Sprintf("%s [%s] [%s] [%s]\n", time.Now().Format("2006/01/02 15:04:05"), app, GetLevelString(l), data)
+    return fmt.Sprintf("%s [%s] [%s] ([test]) [%s]\n", time.Now().Format("2006/01/02 15:04:05"), app, GetLevelString(l), data)
 }
 
 func testTraceNoOutput(buf *bytes.Buffer, t *testing.T) {
+    PushStack("test")
+    defer PopStack()
+
     buf.Reset()
 
     Trace("%s", expectedData)
@@ -35,6 +38,9 @@ func testTraceNoOutput(buf *bytes.Buffer, t *testing.T) {
 }
 
 func testPrint(l int, f funcPrint, t *testing.T) {
+    PushStack("test")
+    defer PopStack()
+
     app := "a"
 
     Setup(app, l)
@@ -158,4 +164,20 @@ func TestGetLevelString(t *testing.T) {
     testGetLevelString(ErrorLevel, "ERROR", t)
     testGetLevelString(FatalLevel, "FATAL", t)
     testGetLevelString(42, "FATAL", t)
+}
+
+func TestPushStack(t *testing.T) {
+    PushStack("test")
+    if len(funcStack) != 1 {
+        t.Fatalf("PushStack() failed. Expected funcStack length of 1, %d was returned instead.", len(funcStack))
+    }
+    PopStack()
+}
+
+func TestPopStack(t *testing.T) {
+    PushStack("test")
+    PopStack()
+    if len(funcStack) != 0 {
+        t.Fatalf("PopStack() failed. Expected funcStack length of 0, %d was returned instead.", len(funcStack))
+    }
 }

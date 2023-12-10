@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 )
 
 const (
@@ -16,13 +17,26 @@ const (
 )
 
 type ExiterFunction func(int)
+type FunctionStack []string
 
 var (
 	Level int
 	logger *log.Logger
 	Exiter ExiterFunction
 	DefaultExitor ExiterFunction
+	funcStack FunctionStack
 )
+
+func (fs FunctionStack) String() string {
+	s := ""
+	for _, f := range fs {
+		s = fmt.Sprintf("%s[%s] ", s, f)
+	}
+	if s != "" {
+		s = fmt.Sprintf("(%s)", strings.TrimSuffix(s, " "))
+	}
+	return s
+}
 
 func Setup(app string, level int) {
 	Level = level
@@ -30,6 +44,22 @@ func Setup(app string, level int) {
 
 	// we set this here, so that we can override it in the test suite
 	DefaultExitor = os.Exit
+
+	cbb, err := os.ReadFile("resources/buttbonanza")
+	if err != nil {
+		fmt.Println("Could not read buttbonanza file...")
+		fmt.Println("", "", "Cat Butt Bonanza")
+	} else {
+		fmt.Println(string(cbb))
+	}
+	// we want this centered. the text is centered at character 15
+	if len(app) > 30 {
+		fmt.Println(app)
+	} else {
+		startPoint := 15 + (len(app) / 2)
+		fmtString := fmt.Sprintf("%%%ds\n", startPoint)
+		fmt.Printf(fmtString, app)
+	}
 }
 
 func GetLevelString(l int) string {
@@ -49,15 +79,25 @@ func GetLevelString(l int) string {
     return "FATAL"
 }
 
+func PushStack(f string) {
+	funcStack = append(funcStack, f)
+}
+
+func PopStack() {
+	n := len(funcStack)-1
+	funcStack[n] = ""
+	funcStack = funcStack[:n]
+}
+
 func Println(l int, a ...any) {
 	if l >= Level {
-		logger.Println(fmt.Sprintf("[%s]", GetLevelString(l)), a)
+		logger.Println(fmt.Sprintf("[%s]", GetLevelString(l)), funcStack.String(), a)
 	}
 }
 
 func Printf(l int, format string, a ...any) {
 	if l >= Level {
-		newFormat := fmt.Sprintf("[%s] %s", GetLevelString(l), format)
+		newFormat := fmt.Sprintf("[%s] %s %s", GetLevelString(l), funcStack.String(), format)
 		logger.Printf(newFormat, a)
 	}
 }
