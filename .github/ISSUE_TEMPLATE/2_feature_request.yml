@@ -1,0 +1,11 @@
+name: 💡 Feature Request
+about: Ideas for features and/or improvements
+labels: [feature-request]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 'Description'
+      description: A clear description of the future. If it is attempting to solve a problem, describe the problem.
+    validations:
+      required: true

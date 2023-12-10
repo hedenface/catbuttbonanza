@@ -1,0 +1,11 @@
+name: '🐛 Bug Report'
+description: Report a bug, inconsistency, error, or general problem
+labels: [question]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 'Description'
+      description: A clear description of the problem.
+    validations:
+      required: true
